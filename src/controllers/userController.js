@@ -65,18 +65,21 @@ export const postLogin = async (req, res) => {
 };
 
 export const startGithubLogin = (req, res) => {
+  // configuration parameter를 가지고 url을 만든다.
   const baseUrl = "https://github.com/login/oauth/authorize";
   const config = {
+    // 그래서 baseUrl과 선언해준 config를 연결해줬다.
     client_id: process.env.GH_CLIENT,
     allow_signup: false,
-    scope: "read:user user:email",
+    scope: "read:user user:email", // 해당 유저로 무엇을 할 건지 설정해 줄 수 있다.
   };
   const params = new URLSearchParams(config).toString();
   const finalUrl = `${baseUrl}?${params}`;
-  return res.redirect(finalUrl);
+  return res.redirect(finalUrl); // 그리고 유저를 깃허브 주소에 보낸다.
 };
 
 export const finishGithubLogin = async (req, res) => {
+  // 베이스url과 config를 더해서 다른 url을 만든다 생각하면 편함
   const baseUrl = "https://github.com/login/oauth/access_token";
   const config = {
     client_id: process.env.GH_CLIENT,
@@ -95,17 +98,20 @@ export const finishGithubLogin = async (req, res) => {
   ).json();
 
   if ("access_token" in tokenRequest) {
+    // 엑서스 토큰은 깃허브 api와 상호작용 할 때 쓰임
     const { access_token } = tokenRequest;
     const apiUrl = "https://api.github.com";
     const userData = await (
       await fetch(`${apiUrl}/user`, {
+        // 유저의 데이터를 받는 곳
         headers: {
           Authorization: `token ${access_token}`,
         },
       })
     ).json();
     console.log(userData);
-    const emailData = await (
+    const emailData = await // 유저데이터와 마찬가지로 이메일을 배열로 받을 코드
+    (
       await fetch(`${apiUrl}/user/emails`, {
         headers: {
           Authorization: `token ${access_token}`,
@@ -116,16 +122,18 @@ export const finishGithubLogin = async (req, res) => {
       (email) => email.primary === true && email.verified === true
     );
     if (!emailObj) {
+      // set notification
       return res.redirect("/login");
     }
     let user = await User.findOne({ email: emailObj.email });
     if (!user) {
       user = await User.create({
+        avatarUrl: userData.avatar_url,
         name: userData.name ? userData.name : "Hello, stranger!",
         username: userData.login,
         email: emailObj.email,
         password: "",
-        socialOnly: true,
+        socialOnly: true, // 포스트 로그인에서 소셜온니가 폴스인걸 체크 소셜온니 트루인건 패스워드가 없는 유저라는 뜻
         location: userData.location ? userData.location : "Where R U",
       });
     }
@@ -133,14 +141,14 @@ export const finishGithubLogin = async (req, res) => {
     req.session.user = user;
     return res.redirect("/");
   } else {
-    return res.redirect("/login");
+    return res.redirect("/login"); // 모든게 더해져 쿠키가 생성된다.
   }
 };
 
+export const logout = (req, res) => {
+  req.session.destroy();
+  return res.redirect("/");
+};
+
 export const edit = (req, res) => res.send("Edit User");
-
-export const remove = (req, res) => res.send("remove User");
-
-export const logout = (req, res) => res.send("Log out");
-
 export const see = (req, res) => res.send("See User");
