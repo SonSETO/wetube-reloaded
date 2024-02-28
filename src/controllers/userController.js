@@ -150,5 +150,43 @@ export const logout = (req, res) => {
   return res.redirect("/");
 };
 
-export const edit = (req, res) => res.send("Edit User");
+export const getEdit = (req, res) => {
+  return res.render("edit-profile"), { pageTitle: "Edit-Profile" };
+};
+
+export const postEdit = async (req, res) => {
+  // 현재 로그인 된 user의 id는 request object에서 알 수 있다.
+  const {
+    session: {
+      user: { _id },
+    },
+    body: { name, email, username, location },
+  } = req;
+  const currentUser = req.session.user;
+
+  if (
+    (currentUser.email !== email || currentUser.username !== username) &&
+    (await User.exists({ $or: [{ email }, { username }] }))
+  ) {
+    return res.status(400).render("edit-profile", {
+      pageTitle: "Edit-Profile",
+      errorMessage: "This email or username is already taken.",
+    });
+  }
+
+  const updateUser = await User.findByIdAndUpdate(
+    _id,
+    {
+      name,
+      email,
+      username,
+      location,
+    },
+    { new: true }
+  );
+  req.session.user = updateUser;
+  return res.redirect("/users/edit");
+};
+// ...req.session.user, // 이 안에 있는 내용을 전부 밖으로 꺼내준다
+
 export const see = (req, res) => res.send("See User");
