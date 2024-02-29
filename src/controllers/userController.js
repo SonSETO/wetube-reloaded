@@ -1,4 +1,5 @@
 import User from "../models/User";
+import Video from "../models/Video";
 import bcrypt from "bcrypt";
 import fetch from "node-fetch";
 
@@ -158,14 +159,15 @@ export const postEdit = async (req, res) => {
   // 현재 로그인 된 user의 id는 request object에서 알 수 있다.
   const {
     session: {
-      user: { _id },
+      user: { _id, avatarUrl },
     },
     body: { name, email, username, location },
+    file,
   } = req;
-  const currentUser = req.session.user;
 
+  const currentUser = req.session.user;
   if (
-    (currentUser.email !== email || currentUser.username !== username) &&
+    (currentUser.email !== email || currentUser.username !== username) && // 세션에서 받은 정보와 새로운 유저의 이메일, 유저네임을 비교함
     (await User.exists({ $or: [{ email }, { username }] }))
   ) {
     return res.status(400).render("edit-profile", {
@@ -177,6 +179,7 @@ export const postEdit = async (req, res) => {
   const updateUser = await User.findByIdAndUpdate(
     _id,
     {
+      avatarUrl: file ? file.path : avatarUrl,
       name,
       email,
       username,
@@ -189,4 +192,50 @@ export const postEdit = async (req, res) => {
 };
 // ...req.session.user, // 이 안에 있는 내용을 전부 밖으로 꺼내준다
 
-export const see = (req, res) => res.send("See User");
+export const getChangePassword = (req, res) => {
+  if (req.session.user.socialOnly === true) {
+    return res.redirect("/");
+  }
+  return res.render("users/change-password", { pageTitle: "Change Password" });
+};
+export const postChangePassword = async (req, res) => {
+  const {
+    session: {
+      user: { _id },
+    },
+    body: { oldPassword, newPassword, newPasswordConfirmation },
+  } = req;
+  const user = await User.findById(_id);
+  const ok = await bcrypt.compare(oldPassword, user.password);
+  if (!ok) {
+    return res.status(400).render("users/change-password", {
+      pageTitle: "Change Password",
+      errorMessage: "The current password is incorrect",
+    });
+  }
+  if (newPassword !== newPasswordConfirmation) {
+    return res.status(400).render("users/change-password", {
+      pageTitle: "Change Password",
+      errorMessage: "The password does not match the Confirmation",
+    });
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  return res.redirect("/users/logout");
+};
+
+export const see = async (req, res) => {
+  const { id } = req.params;
+  const user = await User.findById(id);
+  if (!user) {
+    return res.status(404).render("404", { pageTitle: "User not foind" });
+  }
+  const videos = await Video.find({ owner: user._id });
+  console.log(videos);
+  return res.render("users/profile", {
+    pageTitle: user.name,
+    user,
+  });
+};
