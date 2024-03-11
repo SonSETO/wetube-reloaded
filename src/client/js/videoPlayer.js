@@ -91,14 +91,19 @@ const changeVideoTime = (seconds) => {
   video.currentTime += seconds;
 };
 document.addEventListener("keyup", (event) => {
-  if (event.code === "Space") {
-    handlePlayClick();
-  }
-  if (event.code === "ArrowRight") {
-    changeVideoTime(5);
-  }
-  if (event.code === "ArrowLeft") {
-    changeVideoTime(-5);
+  if (!event.target.matches("textarea")) {
+    if (event.code === "Space") {
+      handlePlayClick();
+      event.stopPropagation();
+    }
+    if (event.code === "ArrowRight") {
+      changeVideoTime(5);
+      event.stopPropagation();
+    }
+    if (event.code === "ArrowLeft") {
+      changeVideoTime(-5);
+      event.stopPropagation();
+    }
   }
 });
 
