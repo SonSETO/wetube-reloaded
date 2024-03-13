@@ -1,5 +1,5 @@
 import multer from "multer";
-
+import aws from "aws-sdk";
 import multerS3 from "multer-s3";
 import { S3Client } from "@aws-sdk/client-s3";
 
@@ -13,7 +13,7 @@ const s3 = new S3Client({
 
 const s3ImageUploader = multerS3({
   s3: s3,
-  bucket: "wetube-ai",
+  bucket: "setotube",
   acl: "public-read",
   key: function (request, file, ab_callback) {
     const newFileName = Date.now() + "-" + file.originalname;
@@ -24,7 +24,7 @@ const s3ImageUploader = multerS3({
 
 const s3VideoUploader = multerS3({
   s3: s3,
-  bucket: "wetube-ai",
+  bucket: "setotube",
   acl: "public-read",
   key: function (request, file, ab_callback) {
     const newFileName = Date.now() + "-" + file.originalname;
